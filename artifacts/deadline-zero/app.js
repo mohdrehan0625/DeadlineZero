@@ -341,25 +341,49 @@ function updateCalendarStatus(connected) {
   }
 }
 
+async function createCalendarEvent(subtask) {
+  const token = window.gapi?.client?.getToken()?.access_token;
+  if (!token) throw new Error('No OAuth token — reconnect Google Calendar.');
+
+  const tz    = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const start = new Date(subtask.suggested_start);
+  const end   = new Date(start.getTime() + (subtask.estimated_minutes || 60) * 60000);
+
+  const event = {
+    summary: subtask.title,
+    description: subtask.description || '',
+    start: { dateTime: start.toISOString(), timeZone: tz },
+    end:   { dateTime: end.toISOString(),   timeZone: tz },
+  };
+
+  const res = await fetch(
+    'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(event),
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `HTTP ${res.status}`);
+  }
+
+  return await res.json();
+}
+
 async function scheduleSubtasksToCalendar(task) {
-  if (!calendarConnected || !window.gapi?.client?.calendar) return;
+  if (!calendarConnected) return;
 
   for (const st of task.subtasks) {
     if (st.scheduledEventId || !st.suggested_start) continue;
     try {
-      const start = new Date(st.suggested_start);
-      const end   = new Date(start.getTime() + (st.estimated_minutes || 60) * 60000);
-
-      const event = {
-        summary: `[DeadlineZero] ${st.title}`,
-        description: `${st.description || ''}\n\nTask: ${task.title}\nPriority: ${st.priority}`,
-        start: { dateTime: start.toISOString() },
-        end:   { dateTime: end.toISOString() },
-        colorId: task.priority === 'critical' ? '11' : task.priority === 'high' ? '6' : '9',
-      };
-
-      const res = await window.gapi.client.calendar.events.insert({ calendarId: 'primary', resource: event });
-      st.scheduledEventId = res.result.id;
+      const created = await createCalendarEvent(st);
+      st.scheduledEventId = created.id;
     } catch (err) {
       console.warn('Failed to schedule subtask:', err);
     }
@@ -378,10 +402,17 @@ async function scheduleOneSubtask(taskId, subtaskId) {
     return;
   }
 
+  if (!subtask.suggested_start) {
+    showToast('No scheduled time for this subtask', 'error');
+    return;
+  }
+
   try {
-    await scheduleSubtasksToCalendar({ ...task, subtasks: [subtask] });
-    showToast('Subtask scheduled in Calendar!', 'success');
+    const created = await createCalendarEvent(subtask);
+    subtask.scheduledEventId = created.id;
+    saveTasks();
     renderDashboard();
+    showToast('Event created in Google Calendar!', 'success');
   } catch (e) {
     showToast('Failed to schedule: ' + e.message, 'error');
   }
