@@ -133,6 +133,38 @@
       </div>
     </section>
 
+    <!-- Gemini API Key Banner -->
+    <section id="apiKeyBanner" class="animate-fade-in">
+      <div class="bg-gray-900 border border-brand-800/40 rounded-2xl p-5">
+        <div class="flex items-start gap-3">
+          <div class="w-8 h-8 bg-brand-900/60 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+            <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-white mb-0.5">Enter your Gemini API Key</p>
+            <p class="text-xs text-gray-500 mb-3">Free key at <a href="https://aistudio.google.com/apikey" target="_blank" class="text-brand-400 hover:underline">aistudio.google.com/apikey</a> — stored only in your browser</p>
+            <div class="flex gap-2">
+              <input
+                id="inlineApiKey"
+                type="password"
+                placeholder="AIza..."
+                class="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all"
+                onkeydown="if(event.key==='Enter') saveInlineApiKey()"
+              />
+              <button
+                onclick="saveInlineApiKey()"
+                class="px-4 py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl text-sm transition-all shrink-0"
+              >
+                Save Key
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Stats Bar -->
     <section id="statsBar" class="hidden animate-slide-up">
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -263,7 +295,7 @@
   <!-- Toast notifications -->
   <div id="toastContainer" class="fixed bottom-6 right-4 space-y-2 z-50"></div>
 
-  <script type="module" src="/config.js"></script>
-  <script type="module" src="/app.js"></script>
+  <script src="/config.js"></script>
+  <script src="/app.js"></script>
 </body>
 </html>

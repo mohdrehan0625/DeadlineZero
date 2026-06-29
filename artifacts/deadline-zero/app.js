@@ -613,6 +613,25 @@ function saveSettings() {
   if (clientId || gKey) initGoogleApi();
 }
 
+// ── Inline API Key ────────────────────────────────────────────────────────────
+function saveInlineApiKey() {
+  const val = document.getElementById('inlineApiKey').value.trim();
+  if (!val) { showToast('Please enter a valid API key', 'error'); return; }
+  localStorage.setItem('dz_gemini_key', val);
+  document.getElementById('apiKeyBanner').classList.add('hidden');
+  showToast('Gemini API key saved — ready to go!', 'success');
+}
+
+function updateApiKeyBanner() {
+  const { GEMINI_API_KEY } = getConfig();
+  const banner = document.getElementById('apiKeyBanner');
+  if (GEMINI_API_KEY) {
+    banner.classList.add('hidden');
+  } else {
+    banner.classList.remove('hidden');
+  }
+}
+
 // ── Example chips ─────────────────────────────────────────────────────────────
 function setExample(text) {
   document.getElementById('taskInput').value = text;
@@ -634,17 +653,11 @@ setInterval(() => {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  updateApiKeyBanner();
   renderDashboard();
   updateStats();
   checkNotificationPermission();
   initGoogleApi();
 
   tasks.forEach(t => scheduleReminders(t));
-
-  const { GEMINI_API_KEY } = getConfig();
-  if (!GEMINI_API_KEY) {
-    setTimeout(() => {
-      showToast('Add your Gemini API key via the gear icon to get started.', 'info');
-    }, 800);
-  }
 });
