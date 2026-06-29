@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeadlineZero — AI Productivity Agent</title>
+  <meta name="description" content="DeadlineZero: AI-powered task breakdown, Google Calendar scheduling, and smart reminders." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            brand: {
+              50:  '#f0f4ff',
+              100: '#e0eaff',
+              200: '#c7d7fe',
+              300: '#a5b8fc',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81',
+            }
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.3s ease-out',
+            'slide-up': 'slideUp 0.4s ease-out',
+            'pulse-slow': 'pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          },
+          keyframes: {
+            fadeIn: { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
+            slideUp: { '0%': { opacity: 0, transform: 'translateY(16px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body class="bg-gray-950 text-gray-100 font-sans min-h-screen">
+
+  <!-- Header -->
+  <header class="border-b border-gray-800 bg-gray-950/95 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+        </div>
+        <span class="text-lg font-bold tracking-tight">DeadlineZero</span>
+        <span class="text-xs text-gray-500 font-medium hidden sm:inline">AI Productivity Agent</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <div id="calendarStatus" class="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer hover:text-gray-300 transition-colors" onclick="connectGoogleCalendar()">
+          <div id="calendarDot" class="w-2 h-2 rounded-full bg-gray-600"></div>
+          <span id="calendarLabel">Connect Calendar</span>
+        </div>
+        <button onclick="requestNotificationPermission()" id="notifBtn" class="text-xs text-gray-500 hover:text-gray-300 transition-colors hidden">
+          Enable Alerts
+        </button>
+        <button onclick="openSettings()" class="p-1.5 rounded-lg hover:bg-gray-800 transition-colors text-gray-400">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-8 space-y-8">
+
+    <!-- Hero Task Input -->
+    <section class="animate-fade-in">
+      <div class="text-center mb-6">
+        <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">What's your next deadline?</h1>
+        <p class="text-gray-400 text-sm sm:text-base">Describe a task with a deadline — AI will break it into subtasks and schedule them.</p>
+      </div>
+
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 shadow-xl">
+        <div class="flex gap-3 mb-4">
+          <div class="flex-1 relative">
+            <input
+              id="taskInput"
+              type="text"
+              placeholder='e.g. "Submit project report by June 29th"'
+              class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all pr-12"
+              onkeydown="if(event.key === 'Enter') addTask()"
+            />
+            <button
+              id="voiceBtn"
+              onclick="toggleVoice()"
+              class="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-gray-400 hover:text-brand-400 hover:bg-gray-700 transition-all"
+              title="Voice input"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+              </svg>
+            </button>
+          </div>
+          <button
+            onclick="addTask()"
+            id="addBtn"
+            class="px-5 py-3.5 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl text-sm transition-all flex items-center gap-2 shrink-0"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            <span class="hidden sm:inline">Analyze</span>
+          </button>
+        </div>
+
+        <!-- Voice status -->
+        <div id="voiceStatus" class="hidden items-center gap-2 text-sm text-brand-400 mb-3">
+          <div class="w-2 h-2 rounded-full bg-brand-400 animate-pulse-slow"></div>
+          <span>Listening... speak your task</span>
+        </div>
+
+        <!-- Quick examples -->
+        <div class="flex flex-wrap gap-2">
+          <span class="text-xs text-gray-600 self-center">Try:</span>
+          <button onclick="setExample('Submit project report by June 30th')" class="example-chip">Submit project report by June 30th</button>
+          <button onclick="setExample('Prepare presentation for Monday meeting')" class="example-chip">Prepare presentation for Monday</button>
+          <button onclick="setExample('Complete coding assignment by tomorrow 5pm')" class="example-chip">Coding assignment by tomorrow 5pm</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats Bar -->
+    <section id="statsBar" class="hidden animate-slide-up">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="stat-card">
+          <div id="statTotal" class="text-2xl font-bold text-white">0</div>
+          <div class="text-xs text-gray-500 mt-0.5">Total Tasks</div>
+        </div>
+        <div class="stat-card">
+          <div id="statPending" class="text-2xl font-bold text-amber-400">0</div>
+          <div class="text-xs text-gray-500 mt-0.5">In Progress</div>
+        </div>
+        <div class="stat-card">
+          <div id="statCompleted" class="text-2xl font-bold text-emerald-400">0</div>
+          <div class="text-xs text-gray-500 mt-0.5">Completed</div>
+        </div>
+        <div class="stat-card">
+          <div id="statUrgent" class="text-2xl font-bold text-red-400">0</div>
+          <div class="text-xs text-gray-500 mt-0.5">Urgent (24h)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Loading state -->
+    <div id="loadingState" class="hidden">
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-8 text-center">
+        <div class="inline-flex items-center gap-3 text-brand-400">
+          <div class="loading-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <span class="text-sm font-medium" id="loadingText">AI is analyzing your task...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error state -->
+    <div id="errorState" class="hidden animate-fade-in">
+      <div class="bg-red-900/20 border border-red-800/50 rounded-2xl p-4 flex items-start gap-3">
+        <svg class="w-5 h-5 text-red-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div>
+          <p class="text-red-400 text-sm font-medium" id="errorMessage">Something went wrong.</p>
+          <p class="text-red-500 text-xs mt-1" id="errorDetail"></p>
+        </div>
+        <button onclick="closeError()" class="ml-auto text-red-500 hover:text-red-300">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Task Dashboard -->
+    <section id="taskDashboard" class="space-y-4">
+      <!-- Tasks rendered here by JS -->
+    </section>
+
+    <!-- Empty state -->
+    <div id="emptyState" class="text-center py-16 animate-fade-in">
+      <div class="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+        </svg>
+      </div>
+      <p class="text-gray-500 text-sm">No tasks yet. Add your first deadline above.</p>
+    </div>
+
+  </main>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal-overlay hidden" onclick="if(event.target===this)closeSettings()">
+    <div class="modal-box animate-slide-up">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-bold text-white">Settings & API Keys</h2>
+        <button onclick="closeSettings()" class="text-gray-500 hover:text-white transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="space-y-5">
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Gemini API Key</label>
+          <input id="settingsGeminiKey" type="password" placeholder="AIza..." class="settings-input" />
+          <p class="text-xs text-gray-600 mt-1.5">Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" class="text-brand-400 hover:underline">aistudio.google.com/apikey</a></p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Google Client ID</label>
+          <input id="settingsClientId" type="text" placeholder="xxxxx.apps.googleusercontent.com" class="settings-input" />
+          <p class="text-xs text-gray-600 mt-1.5">Create OAuth credentials at <a href="https://console.cloud.google.com/apis/credentials" target="_blank" class="text-brand-400 hover:underline">console.cloud.google.com</a>. Enable Google Calendar API + OAuth. Add <code class="bg-gray-800 px-1 rounded text-xs">https://accounts.google.com/o/oauth2/auth</code> as origin.</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Google API Key</label>
+          <input id="settingsGoogleKey" type="password" placeholder="AIza..." class="settings-input" />
+          <p class="text-xs text-gray-600 mt-1.5">Same Google Cloud project, under API Keys section.</p>
+        </div>
+
+        <div class="bg-brand-900/20 border border-brand-800/30 rounded-xl p-3">
+          <p class="text-xs text-brand-300">Keys are saved locally in your browser only — never sent to any server.</p>
+        </div>
+
+        <button onclick="saveSettings()" class="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl text-sm transition-all">
+          Save Settings
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calendar Auth Modal -->
+  <div id="calendarModal" class="modal-overlay hidden" onclick="if(event.target===this)closeCalendarModal()">
+    <div class="modal-box animate-slide-up">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-lg font-bold text-white">Connect Google Calendar</h2>
+        <button onclick="closeCalendarModal()" class="text-gray-500 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+      </div>
+      <p class="text-gray-400 text-sm mb-5">DeadlineZero will auto-schedule your subtasks into your available Calendar slots.</p>
+      <ol class="text-sm text-gray-400 space-y-2 mb-6 list-decimal list-inside">
+        <li>Add your Google Client ID in Settings</li>
+        <li>Click Connect below to authorize Calendar access</li>
+        <li>Subtasks will be scheduled in your free slots</li>
+      </ol>
+      <button onclick="authorizeCalendar()" class="w-full py-3 bg-white hover:bg-gray-100 text-gray-900 font-semibold rounded-xl text-sm transition-all flex items-center justify-center gap-2.5">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="Google"/>
+        Connect with Google
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div id="toastContainer" class="fixed bottom-6 right-4 space-y-2 z-50"></div>
+
+  <script type="module" src="/config.js"></script>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
