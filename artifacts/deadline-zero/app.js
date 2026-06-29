@@ -417,10 +417,12 @@ function scheduleReminders(task) {
     const fireAt = diff - offset;
     if (fireAt > 0) {
       setTimeout(() => {
-        new Notification(`⏰ DeadlineZero: ${task.title}`, {
-          body: `Deadline in ${label}! You have ${task.subtasks.filter(s => !s.done).length} subtasks remaining.`,
-          icon: '/favicon.svg',
-          tag: `dz-${task.id}-${offset}`,
+        navigator.serviceWorker.ready.then(reg => {
+          reg.showNotification(`⏰ DeadlineZero: ${task.title}`, {
+            body: `Deadline in ${label}! You have ${task.subtasks.filter(s => !s.done).length} subtasks remaining.`,
+            icon: '/favicon.svg',
+            tag: `dz-${task.id}-${offset}`,
+          });
         });
       }, fireAt);
     }
