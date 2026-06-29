@@ -521,6 +521,43 @@ function renderTaskCard(task) {
     ? new Date(task.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
     : 'No deadline';
 
+  const deadlineInputVal = task.deadline
+    ? new Date(task.deadline).toISOString().slice(0, 16)
+    : '';
+
+  const editIcon = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>`;
+
+  const titleBlock = task.editing ? `
+    <div class="flex flex-col gap-2 mt-1" onclick="event.stopPropagation()">
+      <input id="edit-title-${task.id}" type="text" value="${escapeHtml(task.title)}"
+        class="edit-inline-input text-sm font-semibold"
+        onkeydown="if(event.key==='Enter') saveEditTask('${task.id}')"
+        placeholder="Task title" />
+      <div class="flex items-center gap-2">
+        <label class="text-xs text-gray-500 shrink-0">Deadline:</label>
+        <input id="edit-deadline-${task.id}" type="datetime-local" value="${deadlineInputVal}"
+          class="edit-inline-input text-xs flex-1" />
+      </div>
+      <div class="flex gap-2">
+        <button onclick="event.stopPropagation();saveEditTask('${task.id}')"
+          class="px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-lg transition-all">Save</button>
+        <button onclick="event.stopPropagation();cancelEditTask('${task.id}')"
+          class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-semibold rounded-lg transition-all">Cancel</button>
+      </div>
+    </div>` : `
+    <div class="flex items-start gap-1.5">
+      <h3 class="text-sm font-semibold text-white leading-snug line-clamp-2 mb-1">${escapeHtml(task.title)}</h3>
+      <button onclick="event.stopPropagation();startEditTask('${task.id}')"
+        class="shrink-0 mt-0.5 text-gray-600 hover:text-brand-400 transition-colors" title="Edit task">
+        ${editIcon}
+      </button>
+    </div>
+    <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+      <span>📅 ${deadlineStr}</span>
+      ${task.estimatedHours ? `<span>⏱ ~${task.estimatedHours}h</span>` : ''}
+      <span>${completedCount}/${totalCount} subtasks</span>
+    </div>`;
+
   return `
   <div class="task-card animate-slide-up ${isCompleted ? 'completed' : ''}">
     <div class="task-header" onclick="toggleCollapse('${task.id}')">
@@ -531,12 +568,7 @@ function renderTaskCard(task) {
           ${countdown ? `<span class="countdown ${countdown.cls}">${countdown.label}</span>` : ''}
           ${isCompleted ? '<span class="text-xs text-emerald-400 font-semibold">✓ Done</span>' : ''}
         </div>
-        <h3 class="text-sm font-semibold text-white leading-snug line-clamp-2 mb-1">${escapeHtml(task.title)}</h3>
-        <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500">
-          <span>📅 ${deadlineStr}</span>
-          ${task.estimatedHours ? `<span>⏱ ~${task.estimatedHours}h</span>` : ''}
-          <span>${completedCount}/${totalCount} subtasks</span>
-        </div>
+        ${titleBlock}
         <div class="mt-3 progress-bar-bg">
           <div class="progress-bar-fill" style="width:${progress}%"></div>
         </div>
@@ -568,33 +600,122 @@ function renderSubtask(taskId, st) {
     ? new Date(st.suggested_start).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
     : '';
 
+  const editIcon = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>`;
+
+  const contentBlock = st.editing ? `
+    <div class="flex flex-col gap-1.5 mt-0.5">
+      <input id="edit-st-title-${st.id}" type="text" value="${escapeHtml(st.title)}"
+        class="edit-inline-input text-xs font-medium"
+        onkeydown="if(event.key==='Enter') saveEditSubtask('${taskId}','${st.id}')"
+        placeholder="Subtask title" />
+      <input id="edit-st-desc-${st.id}" type="text" value="${escapeHtml(st.description || '')}"
+        class="edit-inline-input text-xs"
+        placeholder="Description (optional)" />
+      <div class="flex gap-2 mt-0.5">
+        <button onclick="saveEditSubtask('${taskId}','${st.id}')"
+          class="px-2.5 py-1 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-lg transition-all">Save</button>
+        <button onclick="cancelEditSubtask('${taskId}','${st.id}')"
+          class="px-2.5 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-semibold rounded-lg transition-all">Cancel</button>
+      </div>
+    </div>` : `
+    <div class="flex flex-wrap items-center gap-1.5 mb-0.5">
+      <span class="text-sm font-medium text-${st.done ? 'gray-500 line-through' : 'white'}">${escapeHtml(st.title)}</span>
+      <span class="priority-badge ${pClass}">${st.priority}</span>
+      <button onclick="startEditSubtask('${taskId}','${st.id}')"
+        class="text-gray-600 hover:text-brand-400 transition-colors" title="Edit subtask">
+        ${editIcon}
+      </button>
+    </div>
+    ${st.description ? `<p class="text-xs text-gray-500 mb-1.5 line-clamp-2">${escapeHtml(st.description)}</p>` : ''}
+    <div class="flex flex-wrap items-center gap-2">
+      ${mins ? `<span class="text-xs text-gray-600">⏱ ${timeStr}</span>` : ''}
+      ${startStr ? `<span class="text-xs text-gray-600">📅 ${startStr}</span>` : ''}
+      <button
+        onclick="scheduleOneSubtask('${taskId}', '${st.id}')"
+        class="cal-btn ${st.scheduledEventId ? 'scheduled' : ''}"
+        ${st.scheduledEventId ? 'title="Scheduled in Calendar"' : 'title="Add to Calendar"'}
+      >
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        ${st.scheduledEventId ? 'Scheduled' : 'Schedule'}
+      </button>
+    </div>`;
+
   return `
   <div class="subtask-item">
     <div class="subtask-checkbox ${st.done ? 'checked' : ''}" onclick="toggleSubtask('${taskId}', '${st.id}')">
       ${st.done ? '<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>' : ''}
     </div>
     <div class="flex-1 min-w-0">
-      <div class="flex flex-wrap items-center gap-1.5 mb-0.5">
-        <span class="text-sm font-medium text-${st.done ? 'gray-500 line-through' : 'white'}">${escapeHtml(st.title)}</span>
-        <span class="priority-badge ${pClass}">${st.priority}</span>
-      </div>
-      ${st.description ? `<p class="text-xs text-gray-500 mb-1.5 line-clamp-2">${escapeHtml(st.description)}</p>` : ''}
-      <div class="flex flex-wrap items-center gap-2">
-        ${mins ? `<span class="text-xs text-gray-600">⏱ ${timeStr}</span>` : ''}
-        ${startStr ? `<span class="text-xs text-gray-600">📅 ${startStr}</span>` : ''}
-        <button
-          onclick="scheduleOneSubtask('${taskId}', '${st.id}')"
-          class="cal-btn ${st.scheduledEventId ? 'scheduled' : ''}"
-          ${st.scheduledEventId ? 'title="Scheduled in Calendar"' : 'title="Add to Calendar"'}
-        >
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-          </svg>
-          ${st.scheduledEventId ? 'Scheduled' : 'Schedule'}
-        </button>
-      </div>
+      ${contentBlock}
     </div>
   </div>`;
+}
+
+// ── Edit: Tasks ───────────────────────────────────────────────────────────────
+function startEditTask(taskId) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+  task.editing = true;
+  task.collapsed = false;
+  renderDashboard();
+}
+
+function cancelEditTask(taskId) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+  task.editing = false;
+  renderDashboard();
+}
+
+function saveEditTask(taskId) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+  const titleEl    = document.getElementById(`edit-title-${taskId}`);
+  const deadlineEl = document.getElementById(`edit-deadline-${taskId}`);
+  const newTitle   = titleEl ? titleEl.value.trim() : '';
+  if (!newTitle) { showToast('Title cannot be empty', 'error'); return; }
+  task.title    = newTitle;
+  task.deadline = deadlineEl && deadlineEl.value ? new Date(deadlineEl.value).toISOString() : task.deadline;
+  task.editing  = false;
+  saveTasks();
+  renderDashboard();
+  updateStats();
+  showToast('Task updated successfully', 'success');
+}
+
+// ── Edit: Subtasks ────────────────────────────────────────────────────────────
+function startEditSubtask(taskId, subtaskId) {
+  const task = tasks.find(t => t.id === taskId);
+  const sub  = task?.subtasks?.find(s => s.id === subtaskId);
+  if (!sub) return;
+  sub.editing = true;
+  renderDashboard();
+}
+
+function cancelEditSubtask(taskId, subtaskId) {
+  const task = tasks.find(t => t.id === taskId);
+  const sub  = task?.subtasks?.find(s => s.id === subtaskId);
+  if (!sub) return;
+  sub.editing = false;
+  renderDashboard();
+}
+
+function saveEditSubtask(taskId, subtaskId) {
+  const task = tasks.find(t => t.id === taskId);
+  const sub  = task?.subtasks?.find(s => s.id === subtaskId);
+  if (!sub) return;
+  const titleEl = document.getElementById(`edit-st-title-${subtaskId}`);
+  const descEl  = document.getElementById(`edit-st-desc-${subtaskId}`);
+  const newTitle = titleEl ? titleEl.value.trim() : '';
+  if (!newTitle) { showToast('Subtask title cannot be empty', 'error'); return; }
+  sub.title       = newTitle;
+  sub.description = descEl ? descEl.value.trim() : sub.description;
+  sub.editing     = false;
+  saveTasks();
+  renderDashboard();
+  showToast('Task updated successfully', 'success');
 }
 
 function escapeHtml(str) {

@@ -242,6 +242,23 @@ body {
   color: #a5b8fc !important;
 }
 
+/* Inline edit inputs */
+.edit-inline-input {
+  width: 100%;
+  background: #1e293b;
+  border: 1px solid #4f46e5;
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: #f9fafb;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  transition: box-shadow 0.15s ease;
+}
+.edit-inline-input:focus {
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+}
+.edit-inline-input::placeholder { color: #4b5563; }
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
