@@ -648,13 +648,8 @@ function checkNotificationPermission() {
   }
 }
 
-// ── Countdown refresh ─────────────────────────────────────────────────────────
-setInterval(() => {
-  if (tasks.length > 0) renderDashboard();
-}, 60000);
-
 // ── Init ──────────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
   updateApiKeyBanner();
   renderDashboard();
   updateStats();
@@ -662,4 +657,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initGoogleApi();
 
   tasks.forEach(t => scheduleReminders(t));
+
+  // ── Countdown refresh ───────────────────────────────────────────────────────
+  setInterval(function() {
+    if (tasks.length > 0) renderDashboard();
+  }, 60000);
 });
